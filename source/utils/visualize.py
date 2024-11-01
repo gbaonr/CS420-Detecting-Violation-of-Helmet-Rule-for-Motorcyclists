@@ -2,6 +2,11 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 
+
+def print_():
+    print("hello world from visualize")
+
+
 COLORS = [
     (255, 179, 0),
     (128, 62, 117),
@@ -37,8 +42,22 @@ class_names = [
     "P0NoHelmet",
 ]
 
+class_colors = [
+    (0, 255, 255),  # Xanh lơ
+    (0, 255, 0),  # Xanh lá
+    (0, 0, 255),  # Xanh dương
+    (255, 255, 0),  # Vàng
+    (255, 0, 255),  # Hồng
+    (255, 0, 0),  # Đỏ
+    (128, 0, 128),  # Tím
+    (0, 128, 128),  # Xanh biển
+    (128, 128, 0),  # Xanh rêu
+]
 
-def plot_bbox(image, boxes, labels, scores, color=None, names=class_names):
+
+def plot_bbox(
+    image, boxes, labels, scores, names=class_names, class_colors=class_colors
+):
     """
     Draw bounding boxes with labels and scores on the image.
 
@@ -56,9 +75,9 @@ def plot_bbox(image, boxes, labels, scores, color=None, names=class_names):
         label = labels[i]
         score = scores[i]
 
-        # If color not specified
-        if not color:
-            color = COLORS[1]
+        # Choose color for box
+        color = class_colors[int(label)]
+
         # Draw bounding box
         cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
 
@@ -104,17 +123,17 @@ def plot_bbox(image, boxes, labels, scores, color=None, names=class_names):
 
 def visualize(image_path, predictions, plot=True):
     """
-    Visualize predictions from two models on the same image.
+    Visualize predictions from 1 model on the same image.
 
     Parameters:
     - image_path: Path to the original image.
-    - predictions: Predictions from the model (format: ["x1,y1,x2,y2,w,h,label,score\n"]).
+    - predictions: Predictions from the model (format: ["x1,y1,x2,y2,img_w,img_h,label,score\n"]).
     """
     # Load the image
     img = cv2.imread(image_path)
-    img_model = img.copy()
+    img_model = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # Process model 1 predictions
+    # Process model predictions
     boxes = []
     labels = []
     scores = []
@@ -125,14 +144,14 @@ def visualize(image_path, predictions, plot=True):
         scores.append(round(float(score), 2))
 
     # Draw bounding boxes for model 1
-    img_model = plot_bbox(img_model, boxes, labels, scores, color=(0, 255, 0))
+    img_model = plot_bbox(img_model, boxes, labels, scores)
 
     # Display results side by side
     if plot:
-        plt.imshow(img_model, cv2.COLOR_BGR2RGB)
-        plt.set_title(f"{os.path.basename(image_path)}")
-        plt.figure(figsize=(20, 10))
+        plt.figure(figsize=(12, 7))
         plt.axis("off")
+        plt.title(f"{os.path.basename(image_path)}")
+        plt.imshow(img_model)
 
         plt.show()
     return img_model
