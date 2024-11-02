@@ -1,4 +1,10 @@
 # CREATE MODELS AND PREDICT
+"""
+Run this file by :
+python test.py --model_weights path1_to_your_model1.pt path2_to_your_model2.pt --test_path data/small_val/images
+
+"""
+import argparse
 from ultralytics import YOLO
 import os
 import time
@@ -83,16 +89,6 @@ def get_models_predictions(model_weights_list, test_path, single_image=False):
     return predictions
 
 
-# path to models weights
-model_weights_list = [
-    "weights/v10s/v10s_best5.pt",
-    # "weights/v10m/v10m_best5.pt",
-    "weights/v11s/v11s_best5.pt",
-]
-# path to test images folder
-test_path = "data/small_val/images"
-
-
 def run_test(model_weights_list, test_path, plot=True):
     predictions = get_models_predictions(
         model_weights_list, test_path, single_image=False
@@ -142,13 +138,32 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
     return results
 
 
-# CALL FUNCTIONS
-# run_test(model_weights_list, test_path)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="YOLO Model Predictions")
+    parser.add_argument(
+        "--model_weights",
+        nargs="+",
+        default=["weights/v10s/v10s_best5.pt", "weights/v11s/v11s_best5.pt"],
+        help="List of paths to model weight files",
+    )
+    parser.add_argument(
+        "--test_path",
+        default="../data/small_val/images",
+        help="Path to test images folder or a single image",
+    )
+    # parser.add_argument(
+    #     "--single_image",
+    #     action="store_true",
+    #     help="Flag to run prediction on a single image",
+    # )
+    args = parser.parse_args()
 
-sample_image = os.path.join(test_path, os.listdir(test_path)[10])
-run_test_on_single_image(model_weights_list, sample_image)
+    # CALL FUNCTIONS
+    # run_test(model_weights_list, test_path)
 
+    sample_image = os.path.join(args.test_path, os.listdir(args.test_path)[10])
+    run_test_on_single_image(args.model_weights_list, sample_image)
 
-# sample_images = os.listdir(test_path)
-# for sample_image in sample_images[:10]:
-#     run_test_on_single_image(model_weights_list, os.path.join(test_path, sample_image))
+    # sample_images = os.listdir(test_path)
+    # for sample_image in sample_images[:10]:
+    #     run_test_on_single_image(model_weights_list, os.path.join(test_path, sample_image))
