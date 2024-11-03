@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from utils.wbf import *
 from utils.visualize import *
+from utils.minority_optimizer import minority
 
 
 # create model lists and namesa
@@ -105,7 +106,28 @@ def run_test(model_weights_list, test_path, plot=True):
         iou_thr=0.5,
         skip_box_thr=0.05,
     )
+    number_of_classes = set()
+    for _, values in results.items():
+        for value in values:
+            parts = value.strip().split(",")
+            number_of_classes.add(parts[6])
 
+    p = 0.1  #  minimum confident threshold (ngưỡng confidence tối thiểu) - có thể tự điều chỉnh
+    minority_score = minority(p, results, len(number_of_classes))
+    print(f"Minority Score : {minority_score}")
+
+    new_results = {}
+    for image_name, boxes in results.items():
+        # print(f"{image_name} : {boxes}")
+        if image_name not in new_results:
+            new_results[image_name] = []
+        for box in boxes:
+            parts = box.strip().split(",")
+            score = float(parts[7])
+            if score >= minority_score:
+                new_results[image_name].append(box)
+
+    results = new_results
     # visualize
     if plot:
         images = os.listdir(test_path)
@@ -130,7 +152,28 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
         iou_thr=0.5,
         skip_box_thr=0.05,
     )
+    number_of_classes = set()
+    for _, values in results.items():
+        for value in values:
+            parts = value.strip().split(",")
+            number_of_classes.add(parts[6])
 
+    p = 0.1  #  minimum confident threshold (ngưỡng confidence tối thiểu) - có thể tự điều chỉnh
+    minority_score = minority(p, results, len(number_of_classes))
+    print(f"Minority Score : {minority_score}")
+
+    new_results = {}
+    for image_name, boxes in results.items():
+        # print(f"{image_name} : {boxes}")
+        if image_name not in new_results:
+            new_results[image_name] = []
+        for box in boxes:
+            parts = box.strip().split(",")
+            score = float(parts[7])
+            if score >= minority_score:
+                new_results[image_name].append(box)
+
+    results = new_results
     # visualize
     if plot:
         visualize(image_path, results[os.path.basename(image_path)])
