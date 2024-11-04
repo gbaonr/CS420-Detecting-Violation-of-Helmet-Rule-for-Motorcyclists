@@ -51,3 +51,28 @@ def minority(p, classes, n):
                     min_thresh = score
 
     return max(min_thresh, p)
+
+
+def minority_optimizer_func(results):
+    number_of_classes = set()
+    for _, values in results.items():
+        for value in values:
+            parts = value.strip().split(",")
+            number_of_classes.add(parts[6])
+
+    p = 0.1  #  minimum confident threshold (ngưỡng confidence tối thiểu) - có thể tự điều chỉnh
+    minority_score = minority(p, results, len(number_of_classes))
+    print(f"Minority Score : {minority_score}")
+
+    new_results = {}
+    for image_name, boxes in results.items():
+        # print(f"{image_name} : {boxes}")
+        if image_name not in new_results:
+            new_results[image_name] = []
+        for box in boxes:
+            parts = box.strip().split(",")
+            score = float(parts[7])
+            if score >= minority_score:
+                new_results[image_name].append(box)
+
+    return new_results

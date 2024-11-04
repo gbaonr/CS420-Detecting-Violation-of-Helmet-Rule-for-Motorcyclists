@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from utils.wbf import *
 from utils.visualize import *
+from utils.minority_optimizer import minority_optimizer_func
 
 
 # create model lists and namesa
@@ -105,7 +106,7 @@ def run_test(model_weights_list, test_path, plot=True):
         iou_thr=0.5,
         skip_box_thr=0.05,
     )
-
+    results = minority_optimizer_func(results)
     # visualize
     if plot:
         images = os.listdir(test_path)
@@ -130,7 +131,7 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
         iou_thr=0.5,
         skip_box_thr=0.05,
     )
-
+    results = minority_optimizer_func(results)
     # visualize
     if plot:
         visualize(image_path, results[os.path.basename(image_path)])
@@ -141,14 +142,14 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="YOLO Model Predictions")
     parser.add_argument(
-        "--model_weights",
+        "--model_weights_list",
         nargs="+",
-        default=["weights/v10s/v10s_best5.pt", "weights/v11s/v11s_best5.pt"],
+        # default=["weights/v10s/v10s_best5.pt", "weights/v11s/v11s_best5.pt"],
         help="List of paths to model weight files",
     )
     parser.add_argument(
         "--test_path",
-        default="../data/small_val/images",
+        # default="../data/small_val/images",
         help="Path to test images folder or a single image",
     )
     # parser.add_argument(
