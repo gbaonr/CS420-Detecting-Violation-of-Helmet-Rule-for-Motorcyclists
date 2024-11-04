@@ -1,4 +1,11 @@
-from utils import minority_optimizer as mo, wbf
+# this file is use for validation purposes
+"""
+Run this file by : 
+python val.py --model_weights weights/best.pt --test_path ../data/val/images
+"""
+
+from utils.wbf import *
+from utils.minority_optimizer import minority_optimizer_func
 import os
 from collections import defaultdict
 import torch
@@ -61,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test_path",
         type=str,
-        default="/kaggle/input/helmet-detection-with-yolo-pna/dataset/val/images",
+        default="../data/val/images",
         help="Path to the directory containing images to process.",
     )
     args = parser.parse_args()
@@ -91,7 +98,7 @@ if __name__ == "__main__":
             os.listdir(args.test_path), desc=f"Processing {model_name}"
         ):
             image_path = os.path.join(args.test_path, image_name)
-            results = wbf.detect_image(
+            results = detect_image(
                 image_path, model
             )  # Hàm thực hiện dự đoán trên 1 ảnh
 
@@ -103,35 +110,12 @@ if __name__ == "__main__":
         print(f"Completed {model_name} in {elapsed_time:.2f} seconds")
 
     print("Start Fuse")
-    fused_preds_dict = wbf.fuse(
+    fused_preds_dict = fuse(
         model_list, args.test_path, predictions, iou_thr=0.7, skip_box_thr=0.07
     )
     print("End Fuse")
 
-    number_of_classes = set()
-    for _, values in fused_preds_dict.items():
-        for value in values:
-            parts = value.strip().split(",")
-            number_of_classes.add(parts[6])
-
-    print("Number of class in test images : ", len(number_of_classes))
-    # for index in number_of_classes:
-    #     print(index)
-
-    p = 0.1  #  minimum confident threshold (ngưỡng confidence tối thiểu) - có thể tự điều chỉnh
-    minority_score = mo.minority(p, fused_preds_dict, len(number_of_classes))
-    print(f"Minority Score : {minority_score}")
-
-    results = {}
-    for image_name, boxes in fused_preds_dict.items():
-        # print(f"{image_name} : {boxes}")
-        if image_name not in results:
-            results[image_name] = []
-        for box in boxes:
-            parts = box.strip().split(",")
-            score = float(parts[7])
-            if score >= minority_score:
-                results[image_name].append(box)
+    results = minority_optimizer_func(fused_preds_dict)
 
     # Danh sách các lớp
     classes = [
