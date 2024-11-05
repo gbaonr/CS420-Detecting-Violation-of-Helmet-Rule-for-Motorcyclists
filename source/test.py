@@ -12,7 +12,19 @@ from tqdm import tqdm
 
 from utils.wbf import *
 from utils.visualize import *
-from utils.minority_optimizer import minority_optimizer_func
+from utils.minority_optimizer import *
+
+names = [
+    "motorbike",  # 0
+    "DHelmet",  # 1
+    "DNoHelmet",  # 2
+    "P1Helmet",  # 3
+    "P1NoHelmet",  # 4
+    "P2Helmet",  # 5
+    "P2NoHelmet",  # 6
+    "P0Helmet",  # 7
+    "P0NoHelmet",  # 8
+]  # Danh sách tên class
 
 
 # create model lists and namesa
@@ -106,7 +118,11 @@ def run_test(model_weights_list, test_path, plot=True):
         iou_thr=0.5,
         skip_box_thr=0.05,
     )
-    results = minority_optimizer_func(results)
+
+    # apply minority optimizer
+    p = 0.001
+    results = minority_optimizer_func(results, p)
+
     # visualize
     if plot:
         images = os.listdir(test_path)
@@ -129,9 +145,21 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
         predictions,
         single_image=True,
         iou_thr=0.5,
-        skip_box_thr=0.05,
+        skip_box_thr=0.001,
     )
-    results = minority_optimizer_func(results)
+
+    # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
+    """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
+    results = minority_optimizer_func(results, p=0.09, common_p=0.3)
+
+    for image_name, preds in results.items():
+        print(f"Image: {image_name}")
+        for pred in preds:
+            parts = pred.strip().split(",")
+            print(
+                f"\tLabel: {parts[6]}: {names[int(float(parts[6]))]}, Score: {parts[7]}"
+            )
+
     # visualize
     if plot:
         visualize(image_path, results[os.path.basename(image_path)])
@@ -140,31 +168,67 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
 
 
 if __name__ == "__main__":
+
+    # PARSE ARGUMENTS
     parser = argparse.ArgumentParser(description="YOLO Model Predictions")
+
     parser.add_argument(
-        "--model_weights_list",
+        "--model_weights",
         nargs="+",
-        # default=["weights/v10s/v10s_best5.pt", "weights/v11s/v11s_best5.pt"],
+        default=["weights/v10s/v10s_best5.pt", "weights/v11s/v11s_best5.pt"],
         help="List of paths to model weight files",
     )
     parser.add_argument(
         "--test_path",
-        # default="../data/small_val/images",
+        default="../data/small_val/images",
         help="Path to test images folder or a single image",
     )
-    # parser.add_argument(
-    #     "--single_image",
-    #     action="store_true",
-    #     help="Flag to run prediction on a single image",
-    # )
+    parser.add_argument(
+        "--single_image",
+        type=bool,
+        default=False,
+        help="Flag to run prediction on a single image",
+    )
+    parser.add_argument(
+        "--image_index",
+        default=10,
+        type=int,
+        help="Flag to choose an image from test_path to run prediction on",
+    )
+
     args = parser.parse_args()
 
-    # CALL FUNCTIONS
-    # run_test(model_weights_list, test_path)
+    # CHECK INPUTS
+    if not os.path.exists(args.test_path):
+        print("Test path does not exist!")
+        print(args.test_path)
+        exit()
+    if not all([os.path.exists(path) for path in args.model_weights]):
+        print("Model weights do not exist!")
+        print(args.model_weights)
+        exit()
 
-    sample_image = os.path.join(args.test_path, os.listdir(args.test_path)[10])
-    run_test_on_single_image(args.model_weights_list, sample_image)
+    # RUN TEST
+    if not args.single_image:
+        run_test(args.model_weights, args.test_path)
+
+    # RUN TEST ON SINGLE IMAGE
+    if args.single_image:
+        sample_image = os.path.join(
+            args.test_path, os.listdir(args.test_path)[args.image_index]
+        )
+        run_test_on_single_image(args.model_weights, sample_image)
 
     # sample_images = os.listdir(test_path)
     # for sample_image in sample_images[:10]:
     #     run_test_on_single_image(model_weights_list, os.path.join(test_path, sample_image))
+
+
+"""
+Chỉnh sửa lại cách chạy file test.py: 
+- có thể truyền p và common_p vào hàm minority_optimizer_func
+- Bỏ argument model_weights 
+- Chỉnh lại tham số cho hàm count_samples_per_class_on_train: nên count_samples_per_class trong hàm run_test, rồi truyền vào các hàm tính minority scores
+- Cân nhắc tính minority score cho từng class riêng biệt
+- 
+"""

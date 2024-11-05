@@ -11,7 +11,9 @@ def detect_image(image_path, model):
     """
     img = cv2.imread(image_path)
     img_h, img_w = img.shape[:2]
-    results = model.predict(source=img, save=False, stream=True, batch=8, device="cpu")
+    results = model.predict(
+        source=img, save=False, stream=True, batch=8, conf=0.001, device="cpu"
+    )
     # detect with gpu, use this if gpu is available to speed up detection
     # results = model.predict(
     #     source=img, save=False, stream=True, batch=8, device="cuda:0"
@@ -35,7 +37,7 @@ def fuse(
     predictions,
     single_image=False,
     iou_thr=0.5,
-    skip_box_thr=0.05,
+    skip_box_thr=0.001,
 ):
     """
     - Fuse results from multiple models of all images or single image
@@ -146,5 +148,6 @@ def fuse(
                     f"{boxes[i][0]*i_w},{boxes[i][1]*i_h},{boxes[i][2]*i_w},{boxes[i][3]*i_h},{i_w},{i_h},{labels [i]},{scores[i]}\n"
                 )
 
-    # results_dict = {image_name : [ [x1,y1,box_w,box_h, label, score], [..] ]} with de-normalized xywh
+    # results_dict = {image_name : [ [xyxy, i_w, i_h, label, score], [..] ]} with de-normalized xywh
+
     return results_dict

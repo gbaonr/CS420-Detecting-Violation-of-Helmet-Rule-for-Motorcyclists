@@ -1,68 +1,79 @@
-# def count_samples_per_class(data):
-#     class_counts = [0] * 9  # Assuming 9 classes
-#     for _, samples in data.items():
-#         for sample in samples:
-#             class_id = int(sample[-2])  # class label is the second-to-last element
-#             class_counts[class_id] += 1
-#     return class_counts
+import os
+from tqdm import tqdm
 
 
-def my_count_samples_per_class(data):
-    class_counts = {}
-    for _, samples in data.items():
-        for sample in samples:
-            parts = sample.strip().split(",")
+def count_samples_per_class(data):
+    class_counts = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    for image_names, lines in data.items():
+        for line in lines:
+            parts = line.strip().split(",")
             class_id = int(float(parts[6]))
-
-            if class_id not in class_counts:
-                class_counts[class_id] = 0
-
             class_counts[class_id] += 1
+
     return class_counts
 
 
-def find_max(classes):
-    classes_count = my_count_samples_per_class(classes)
-    max_class = max(classes_count)
-    return max_class, classes_count
+def find_max():
+    classes_count = count_samples_per_class_on_train()
+    n_max_class = max(classes_count)
+    return n_max_class, classes_count
+    # max number of samples in a class, number of samples in each class
 
 
 def minority(p, classes, n):
-    n_maxclass, classes_count = find_max(classes)
-    mean_samples = float(len(classes) / n)
-    alpha = mean_samples / n_maxclass
-    rare_classes = []
+    """
+    - Find the minority class and the threshold for the minority class
+    @param p: min threshold
+    @param classes: dict of classes and their samples
+    @param n: number of classes (=9)
+    """
+    n_max_class, classes_count = find_max()
+    # mean_samples = float(len(classes) / n)
+    mean_samples = float(sum(classes_count) / n)  # mean samples per class
+    alpha = (
+        mean_samples / n_max_class
+    )  # mean samples per class / max samples in a class
+    # print(f"Mean samples : {mean_samples}, alpha : {alpha}")
 
-    for index, each_class in classes_count.items():
-        if each_class < (n_maxclass * alpha):
-            rare_classes.append(index)
-            print(f"Rare class : {index}, samples of class : {each_class}")
+    rare_classes = set()
 
+    # find rare classes
+    for index, each_class in enumerate(classes_count):
+        if each_class < (n_max_class * alpha):
+            rare_classes.add(index)
+
+    # print("Rare classes : ", rare_classes)
     min_thresh = 1
+
+    # find minimum threshold
     for each_class_index in rare_classes:
+        # print(f"Class : {each_class_index}")
         for _, samples in classes.items():
             for sample in samples:
                 parts = sample.strip().split(",")
                 class_id = int(float(parts[6]))
                 score = float(parts[7])
+                # print(f"\tclass_id : {class_id}, score : {score}")
                 if class_id != each_class_index:
                     continue
                 if score < min_thresh:
+                    # print("\t\tupdating min_thresh, new threshold : ", score)
                     min_thresh = score
 
-    return max(min_thresh, p)
+    return max(min_thresh, p), rare_classes
 
 
-def minority_optimizer_func(results):
-    number_of_classes = set()
-    for _, values in results.items():
-        for value in values:
-            parts = value.strip().split(",")
-            number_of_classes.add(parts[6])
+def minority_optimizer_func(results, p, common_p=0.05):
+    # number_of_classes = set()
+    # for _, values in results.items():
+    #     for value in values:
+    #         parts = value.strip().split(",")
+    #         number_of_classes.add(parts[6])
 
-    p = 0.1  #  minimum confident threshold (ngưỡng confidence tối thiểu) - có thể tự điều chỉnh
-    minority_score = minority(p, results, len(number_of_classes))
-    print(f"Minority Score : {minority_score}")
+    number_of_classes = 9
+    minority_score, rare_classes = minority(p, results, number_of_classes)
+
+    print(f"Minority Score : {minority_score}\n\n")
 
     new_results = {}
     for image_name, boxes in results.items():
@@ -71,8 +82,29 @@ def minority_optimizer_func(results):
             new_results[image_name] = []
         for box in boxes:
             parts = box.strip().split(",")
+            label = int(float(parts[6]))
             score = float(parts[7])
-            if score >= minority_score:
-                new_results[image_name].append(box)
+            if label in rare_classes:
+                if score > minority_score:
+                    new_results[image_name].append(box)
+            else:
+                if score > common_p:
+                    new_results[image_name].append(box)
 
     return new_results
+
+
+def count_samples_per_class_on_train(train_path="data/train"):
+    path = os.path.join(train_path, "labels")
+    class_counts = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    for file_name in tqdm(os.listdir(path), desc="Counting samples per class"):
+        with open(os.path.join(path, file_name), "r") as f:
+            for line in f:
+                parts = line.strip().split(" ")
+                class_id = int(float(parts[0]))
+                class_counts[class_id] += 1
+
+    print("\nclass counts: ", class_counts)
+    print("\n\n")
+    return class_counts
