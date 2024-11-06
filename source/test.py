@@ -91,7 +91,7 @@ def get_models_predictions(model_weights_list, test_path, single_image=False):
 
             # Print process time for current model
             elapsed_time = time.time() - start_time
-            print(f"Completed {model_names_list[idx]} in {elapsed_time:.2f} seconds")
+            print(f"  Completed {model_names_list[idx]} in {elapsed_time:.2f} seconds")
 
         # Predict for single image
         else:
@@ -102,7 +102,8 @@ def get_models_predictions(model_weights_list, test_path, single_image=False):
     return predictions
 
 
-def run_test(model_weights_list, test_path, plot=True):
+def run(model_weights_list, test_path, p, common_p, plot=True):
+
     predictions = get_models_predictions(
         model_weights_list, test_path, single_image=False
     )
@@ -116,23 +117,23 @@ def run_test(model_weights_list, test_path, plot=True):
         predictions,
         single_image=False,
         iou_thr=0.5,
-        skip_box_thr=0.05,
+        skip_box_thr=0.001,
     )
 
-    # apply minority optimizer
-    p = 0.001
-    results = minority_optimizer_func(results, p)
+    # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
+    """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
+    results = minority_optimizer_func(results, p=p, common_p=common_p)
 
     # visualize
     if plot:
         images = os.listdir(test_path)
-        sample_image = images[10]
+        sample_image = images[15]
         visualize(os.path.join(test_path, sample_image), results[sample_image])
 
     return results
 
 
-def run_test_on_single_image(model_weights_list, image_path, plot=True):
+def run_on_single_image(model_weights_list, image_path, p, common_p, plot=True):
     predictions = get_models_predictions(
         model_weights_list, image_path, single_image=True
     )
@@ -150,7 +151,7 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
 
     # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
     """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
-    results = minority_optimizer_func(results, p=0.09, common_p=0.3)
+    results = minority_optimizer_func(results, p=p, common_p=common_p)
 
     for image_name, preds in results.items():
         print(f"Image: {image_name}")
@@ -168,20 +169,32 @@ def run_test_on_single_image(model_weights_list, image_path, plot=True):
 
 
 if __name__ == "__main__":
-
+    # DEFAULT ARGUMENTS
+    model_weights_list = [
+        "weights/v10s/v10s_best5.pt",
+        "weights/v11s/v11s_best5.pt",
+        "weights/v10m/v10m_best5.pt",
+    ]
     # PARSE ARGUMENTS
     parser = argparse.ArgumentParser(description="YOLO Model Predictions")
 
     parser.add_argument(
-        "--model_weights",
-        nargs="+",
-        default=["weights/v10s/v10s_best5.pt", "weights/v11s/v11s_best5.pt"],
-        help="List of paths to model weight files",
-    )
-    parser.add_argument(
         "--test_path",
         default="../data/small_val/images",
         help="Path to test images folder or a single image",
+    )
+
+    parser.add_argument(
+        "--p",
+        default=0.001,
+        type=float,
+        help="Min confidence threshold for rare classes",
+    )
+    parser.add_argument(
+        "--common_p",
+        default=0.3,
+        type=float,
+        help="Min confidence threshold for common classes",
     )
     parser.add_argument(
         "--single_image",
@@ -195,6 +208,12 @@ if __name__ == "__main__":
         type=int,
         help="Flag to choose an image from test_path to run prediction on",
     )
+    parser.add_argument(
+        "--plot",
+        default=True,
+        type=bool,
+        help="Flag to plot the results",
+    )
 
     args = parser.parse_args()
 
@@ -203,32 +222,20 @@ if __name__ == "__main__":
         print("Test path does not exist!")
         print(args.test_path)
         exit()
-    if not all([os.path.exists(path) for path in args.model_weights]):
+    if not all([os.path.exists(path) for path in model_weights_list]):
         print("Model weights do not exist!")
-        print(args.model_weights)
+        print(model_weights_list)
         exit()
 
     # RUN TEST
     if not args.single_image:
-        run_test(args.model_weights, args.test_path)
+        run(model_weights_list, args.test_path, args.p, args.common_p, args.plot)
 
     # RUN TEST ON SINGLE IMAGE
     if args.single_image:
         sample_image = os.path.join(
             args.test_path, os.listdir(args.test_path)[args.image_index]
         )
-        run_test_on_single_image(args.model_weights, sample_image)
-
-    # sample_images = os.listdir(test_path)
-    # for sample_image in sample_images[:10]:
-    #     run_test_on_single_image(model_weights_list, os.path.join(test_path, sample_image))
-
-
-"""
-Chỉnh sửa lại cách chạy file test.py: 
-- có thể truyền p và common_p vào hàm minority_optimizer_func
-- Bỏ argument model_weights 
-- Chỉnh lại tham số cho hàm count_samples_per_class_on_train: nên count_samples_per_class trong hàm run_test, rồi truyền vào các hàm tính minority scores
-- Cân nhắc tính minority score cho từng class riêng biệt
-- 
-"""
+        run_on_single_image(
+            model_weights_list, sample_image, args.p, args.common_p, args.plot
+        )
