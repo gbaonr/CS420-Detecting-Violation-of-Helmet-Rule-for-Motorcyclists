@@ -12,7 +12,7 @@ def detect_image(image_path, model):
     img = cv2.imread(image_path)
     img_h, img_w = img.shape[:2]
     results = model.predict(
-        source=img, save=False, stream=True, batch=8, conf=0.001, device="cpu"
+        source=img, save=False, stream=True, batch=8, conf=0.01, device="cpu"
     )
     # detect with gpu, use this if gpu is available to speed up detection
     # results = model.predict(

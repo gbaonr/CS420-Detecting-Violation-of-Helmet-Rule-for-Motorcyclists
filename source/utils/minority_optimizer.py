@@ -1,38 +1,55 @@
 import os
+import json
 from tqdm import tqdm
 
 
-def count_samples_per_class(data):
+def count_samples_per_class_on_train(path="data/train/labels"):
     class_counts = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    for image_names, lines in data.items():
-        for line in lines:
-            parts = line.strip().split(",")
-            class_id = int(float(parts[6]))
-            class_counts[class_id] += 1
+
+    for file_name in tqdm(os.listdir(path), desc="Counting samples per class"):
+        with open(os.path.join(path, file_name), "r") as f:
+            for line in f:
+                parts = line.strip().split(" ")
+                class_id = int(float(parts[0]))
+                class_counts[class_id] += 1
 
     return class_counts
 
 
 def find_max():
-    classes_count = count_samples_per_class_on_train()
+    try:
+        with open("config/constants.json", "r") as f:
+            constants = json.load(f)
+            classes_count = constants["classes_count"]
+            if len(classes_count) != 9:
+                raise Exception("Invalid classes count")
+    except Exception as e:
+        print(
+            "\nCan't find classes count in constants.json, counting samples per class"
+        )
+        classes_count = count_samples_per_class_on_train()
+        with open("config/constants.json", "w+") as f:
+            json.dump({"classes_count": classes_count}, f)
+
     n_max_class = max(classes_count)
+    print(f"\nclass counts : {classes_count}")
     return n_max_class, classes_count
     # max number of samples in a class, number of samples in each class
 
 
-def minority(p, classes, n):
+def minority(p, results, n):
     """
     - Find the minority class and the threshold for the minority class
     @param p: min threshold
-    @param classes: dict of classes and their samples
+    @param results: predictions
     @param n: number of classes (=9)
     """
     n_max_class, classes_count = find_max()
-    # mean_samples = float(len(classes) / n)
     mean_samples = float(sum(classes_count) / n)  # mean samples per class
-    alpha = (
+    alpha = float(
         mean_samples / n_max_class
     )  # mean samples per class / max samples in a class
+
     # print(f"Mean samples : {mean_samples}, alpha : {alpha}")
 
     rare_classes = set()
@@ -48,7 +65,7 @@ def minority(p, classes, n):
     # find minimum threshold
     for each_class_index in rare_classes:
         # print(f"Class : {each_class_index}")
-        for _, samples in classes.items():
+        for _, samples in results.items():
             for sample in samples:
                 parts = sample.strip().split(",")
                 class_id = int(float(parts[6]))
@@ -63,13 +80,7 @@ def minority(p, classes, n):
     return max(min_thresh, p), rare_classes
 
 
-def minority_optimizer_func(results, p, common_p=0.05):
-    # number_of_classes = set()
-    # for _, values in results.items():
-    #     for value in values:
-    #         parts = value.strip().split(",")
-    #         number_of_classes.add(parts[6])
-
+def minority_optimizer_func(results, p=0.001, common_p=0.3):
     number_of_classes = 9
     minority_score, rare_classes = minority(p, results, number_of_classes)
 
@@ -94,17 +105,13 @@ def minority_optimizer_func(results, p, common_p=0.05):
     return new_results
 
 
-def count_samples_per_class_on_train(train_path="data/train"):
-    path = os.path.join(train_path, "labels")
+# OLD CODE (not using)
+def count_samples_per_class(data):
     class_counts = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    for image_names, lines in data.items():
+        for line in lines:
+            parts = line.strip().split(",")
+            class_id = int(float(parts[6]))
+            class_counts[class_id] += 1
 
-    for file_name in tqdm(os.listdir(path), desc="Counting samples per class"):
-        with open(os.path.join(path, file_name), "r") as f:
-            for line in f:
-                parts = line.strip().split(" ")
-                class_id = int(float(parts[0]))
-                class_counts[class_id] += 1
-
-    print("\nclass counts: ", class_counts)
-    print("\n\n")
     return class_counts
