@@ -146,7 +146,7 @@ def run_on_single_image(model_weights_list, image_path, p, common_p, plot=True):
         predictions,
         single_image=True,
         iou_thr=0.5,
-        skip_box_thr=0.001,
+        skip_box_thr=0.00001,
     )
 
     # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)

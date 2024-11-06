@@ -137,11 +137,34 @@ def visualize(image_path, predictions, plot=True):
     boxes = []
     labels = []
     scores = []
-    for line in predictions:
-        x1, y1, x2, y2, w, h, label, score = map(float, line.strip().split(","))
-        boxes.append([x1, y1, x2, y2])
-        labels.append(int(label))
-        scores.append(round(float(score), 2))
+    try:
+        for line in predictions:
+            x1, y1, x2, y2, w, h, label, score = map(float, line.strip().split(","))
+            boxes.append([x1, y1, x2, y2])
+            labels.append(int(label))
+            scores.append(round(float(score), 2))
+    except Exception as e:
+        for line in predictions:
+            (
+                label,
+                x_center,
+                y_center,
+                bw,
+                bh,
+            ) = map(float, line.strip().split())
+            x_center *= 1920
+            y_center *= 1080
+            bw *= 1920
+            bh *= 1080
+
+            x1 = int(x_center - bw / 2)
+            y1 = int(y_center - bh / 2)
+            x2 = int(x_center + bw / 2)
+            y2 = int(y_center + bh / 2)
+            score = 0
+            boxes.append([x1, y1, x2, y2])
+            labels.append(int(label))
+            scores.append(round(float(score)))
 
     # Draw bounding boxes for model 1
     img_model = plot_bbox(img_model, boxes, labels, scores)
