@@ -85,8 +85,6 @@ def minority_optimizer_func(results, p=0.001, common_p=0.3):
                 if score > common_p:
                     new_results[image_name].append(box)
 
-    with open("data/results.json", "w+") as f:
-        json.dump(new_results, f)
     return new_results
 
 
