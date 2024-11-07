@@ -15,9 +15,9 @@ def detect_image(image_path, model):
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     if device == "cuda:0":
-        print("Using GPU............................................")
+        print("......................Using GPU.........................")
     else:
-        print("Using CPU............................................")
+        print("......................Using CPU.........................")
     results = model.predict(
         source=img, save=False, stream=True, batch=8, conf=0.00001, device=device
     )
