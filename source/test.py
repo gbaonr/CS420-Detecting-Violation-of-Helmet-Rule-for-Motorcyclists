@@ -9,6 +9,7 @@ from ultralytics import YOLO
 import os
 import time
 from tqdm import tqdm
+import torch
 
 from utils.wbf import *
 from utils.visualize import *
@@ -103,6 +104,11 @@ def get_models_predictions(model_weights_list, test_path, single_image=False):
 
 
 def run(model_weights_list, test_path, p, common_p, plot=True):
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    if device == "cuda:0":
+        print("......................Using GPU.........................")
+    else:
+        print("......................Using CPU.........................")
 
     predictions = get_models_predictions(
         model_weights_list, test_path, single_image=False
@@ -135,6 +141,11 @@ def run(model_weights_list, test_path, p, common_p, plot=True):
 
 
 def run_on_single_image(model_weights_list, image_path, p, common_p, plot=True):
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    if device == "cuda:0":
+        print("......................Using GPU.........................")
+    else:
+        print("......................Using CPU.........................")
     predictions = get_models_predictions(
         model_weights_list, image_path, single_image=True
     )
