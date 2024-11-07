@@ -2,6 +2,7 @@ import os
 import cv2
 from ensemble_boxes import *
 import sys
+import torch
 
 
 # FUNCTION TO DETECT AND FUSE
@@ -11,13 +12,16 @@ def detect_image(image_path, model):
     """
     img = cv2.imread(image_path)
     img_h, img_w = img.shape[:2]
+
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    if device == "cuda:0":
+        print("Using GPU............................................")
+    else:
+        print("Using CPU............................................")
     results = model.predict(
-        source=img, save=False, stream=True, batch=8, conf=0.00001, device="cpu"
+        source=img, save=False, stream=True, batch=8, conf=0.00001, device=device
     )
-    # detect with gpu, use this if gpu is available to speed up detection
-    # results = model.predict(
-    #     source=img, save=False, stream=True, batch=8, device="cuda:0"
-    # )
+
     lines = []
     for result in results:
         for box in result.boxes:
