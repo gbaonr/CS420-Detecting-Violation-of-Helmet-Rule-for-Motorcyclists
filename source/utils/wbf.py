@@ -3,6 +3,7 @@ import cv2
 from ensemble_boxes import *
 import sys
 import torch
+import warnings
 
 
 # FUNCTION TO DETECT AND FUSE
@@ -47,6 +48,13 @@ def fuse(
     """
     results = []
     results_dict = {}
+    import warnings
+
+    # Tắt toàn bộ các cảnh báo
+    warnings.filterwarnings("ignore")
+
+    # Hoặc tắt cảnh báo cụ thể
+    warnings.filterwarnings("ignore", message="Zero area box skipped*")
 
     # Iterate through all images
     if not single_image:
