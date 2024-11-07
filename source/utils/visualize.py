@@ -144,6 +144,9 @@ def visualize(image_path, predictions, plot=True):
             labels.append(int(label))
             scores.append(round(float(score), 2))
     except Exception as e:
+        print(
+            "The data is not in xyxywhls format. Trying label,x_center,y_center,bw,bh format"
+        )
         for line in predictions:
             (
                 label,

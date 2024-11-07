@@ -17,7 +17,7 @@ from pycocotools.cocoeval import COCOeval
 
 from utils.wbf import *
 from utils.minority_optimizer import minority_optimizer_func
-from test import create_models, get_models_predictions
+from test import run
 
 
 if __name__ == "__main__":
@@ -28,36 +28,62 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_weights_list",
         nargs="+",  # Cho phép truyền nhiều tham số
-        required=True,
+        default=[
+            "weights/v10s/v10s_best5.pt",
+            "weights/v11s/v11s_best5.pt",
+            "weights/v10m/v10m_best5.pt",
+        ],
+        required=False,
         help="List of paths to the model weights files.",
     )
     parser.add_argument(
         "--test_path",
         type=str,
-        default="../data/val/images",
+        default="data/small_val/images",
+        required=False,
         help="Path to the directory containing images to process.",
+    )
+    parser.add_argument(
+        "--p",
+        default=0.0005,
+        type=float,
+        help="Min confidence threshold for rare classes",
+    )
+    parser.add_argument(
+        "--common_p",
+        default=0.3,
+        type=float,
+        help="Min confidence threshold for common classes",
+    )
+    parser.add_argument(
+        "--save_name",
+        default="___",
+        required=False,
+        type=str,
+        help="Flag to save the evaluation results with name",
     )
     args = parser.parse_args()
 
     model_weights_list = args.model_weights_list
     test_path = args.test_path
+    p = args.p
+    common_p = args.common_p
+    plot = False
+    save_name = args.save_name
 
-    predictions = get_models_predictions(
-        args.model_weights_list, args.test_path, single_image=False
-    )
+    # CHECK PATHS
+    if not os.path.exists(test_path):
+        print("Test path does not exist!")
+        print(test_path)
+        exit()
+    if not all([os.path.exists(path) for path in model_weights_list]):
+        print("Model weights do not exist!")
+        print(model_weights_list)
+        exit()
+
+    results = run(model_weights_list, test_path, p, common_p, plot)
 
     models_names_list = [os.path.basename(path) for path in model_weights_list]
-
-    results = fuse(
-        models_names_list,
-        args.test_path,
-        predictions,
-        single_image=False,
-        iou_thr=0.5,
-        skip_box_thr=0.05,
-    )
-
-    results = minority_optimizer_func(results)
 
     ground_truth = []
     predictions = []
@@ -155,6 +181,17 @@ if __name__ == "__main__":
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()
+
+    # save results to file
+    if save_name != "___":
+        with open(save_name + ".json", "a") as f:
+            x = {
+                "model_weights_list": model_weights_list,
+                "mAP_50_95": round(coco_eval.stats[0], 5),
+                "mAP_50": round(coco_eval.stats[1], 5),
+                "mAR_50_95": round(coco_eval.stats[8], 5),
+            }
+            json.dump(x, f)
 
     # Lấy mAP trực tiếp từ coco_eval.stats (chỉ số mAP tại ngưỡng IoU trung bình)
     mAP_50 = coco_eval.stats[1]  # mAP@[IoU=0.5]
