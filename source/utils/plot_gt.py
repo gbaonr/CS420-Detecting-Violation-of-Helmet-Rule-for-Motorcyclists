@@ -20,7 +20,6 @@ with open(label, "r") as file:
         print(line)
         gt.append(line)
 
-print(count)
+print(f"number of boxes: {count}")
 
-print("\n\n", gt)
 visualize(image, gt, True)

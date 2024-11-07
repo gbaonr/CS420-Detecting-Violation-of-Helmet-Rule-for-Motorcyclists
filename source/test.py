@@ -117,12 +117,13 @@ def run(model_weights_list, test_path, p, common_p, plot=True):
         predictions,
         single_image=False,
         iou_thr=0.5,
-        skip_box_thr=0.001,
+        skip_box_thr=0.00001,
     )
 
     # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
     """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
     results = minority_optimizer_func(results, p=p, common_p=common_p)
+    # print("not applying minority optimizer")
 
     # visualize
     if plot:
@@ -183,7 +184,6 @@ if __name__ == "__main__":
         default="../data/small_val/images",
         help="Path to test images folder or a single image",
     )
-
     parser.add_argument(
         "--p",
         default=0.001,
@@ -227,15 +227,24 @@ if __name__ == "__main__":
         print(model_weights_list)
         exit()
 
+    final_results = None
     # RUN TEST
     if not args.single_image:
-        run(model_weights_list, args.test_path, args.p, args.common_p, args.plot)
+        final_results = run(
+            model_weights_list, args.test_path, args.p, args.common_p, args.plot
+        )
 
     # RUN TEST ON SINGLE IMAGE
     if args.single_image:
         sample_image = os.path.join(
             args.test_path, os.listdir(args.test_path)[args.image_index]
         )
-        run_on_single_image(
+        final_results = run_on_single_image(
             model_weights_list, sample_image, args.p, args.common_p, args.plot
         )
+
+
+"""
+python source/test.py --test_path data/small_val/images --single_image True --image_index 4 --common_p 0.25 --p 0.0005
+
+"""
