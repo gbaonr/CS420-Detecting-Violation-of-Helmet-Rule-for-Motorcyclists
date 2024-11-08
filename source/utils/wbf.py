@@ -56,6 +56,8 @@ def fuse(
     # Hoặc tắt cảnh báo cụ thể
     warnings.filterwarnings("ignore", message="Zero area box skipped*")
 
+    print("\n\tFusing results with iou_thr:", iou_thr, "skip_box_thr:", skip_box_thr)
+
     # Iterate through all images
     if not single_image:
         for image_name in os.listdir(test_path):

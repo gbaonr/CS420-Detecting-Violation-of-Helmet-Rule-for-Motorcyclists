@@ -46,30 +46,40 @@ if __name__ == "__main__":
     parser.add_argument(
         "--p",
         default=0.0005,
+        required=False,
         type=float,
         help="Min confidence threshold for rare classes",
     )
     parser.add_argument(
-        "--common_p",
-        default=0.3,
+        "--iou_thr",
+        default=0.5,
         type=float,
-        help="Min confidence threshold for common classes",
+        required=False,
+        help="iou threshold for WBF",
     )
     parser.add_argument(
-        "--save_name",
-        default="___",
+        "--sbthr",
+        default=0.00001,
+        required=False,
+        type=float,
+        help="skip box threshold for WBF",
+    )
+    parser.add_argument(
+        "--note",
+        default="",
         required=False,
         type=str,
-        help="Flag to save the evaluation results with name",
+        help="Note for the run",
     )
     args = parser.parse_args()
 
     model_weights_list = args.model_weights_list
     test_path = args.test_path
     p = args.p
-    common_p = args.common_p
     plot = False
-    save_name = args.save_name
+    iou_thr = args.iou_thr
+    sbthr = args.sbthr
+    note = args.note
 
     # CHECK PATHS
     if not os.path.exists(test_path):
@@ -81,7 +91,7 @@ if __name__ == "__main__":
         print(model_weights_list)
         exit()
 
-    results = run(model_weights_list, test_path, p, common_p, plot)
+    results = run(model_weights_list, test_path, p, iou_thr, sbthr, plot)
 
     models_names_list = [os.path.basename(path) for path in model_weights_list]
 
@@ -182,16 +192,27 @@ if __name__ == "__main__":
     coco_eval.accumulate()
     coco_eval.summarize()
 
+    arguments = {
+        "iou_thr": iou_thr,
+        "skip_box_thr": sbthr,
+        "p": p,
+        "test_path": test_path.replace("images", ""),
+    }
+
     # save results to file
-    if save_name != "___":
-        with open(save_name + ".json", "a") as f:
-            x = {
-                "model_weights_list": model_weights_list,
-                "mAP_50_95": round(coco_eval.stats[0], 5),
-                "mAP_50": round(coco_eval.stats[1], 5),
-                "mAR_50_95": round(coco_eval.stats[8], 5),
-            }
-            json.dump(x, f)
+    with open("val_results.json", "a") as f:
+
+        f.write("\n")
+        x = {
+            "note": note,
+            "model_weights_list": model_weights_list,
+            "mAP_50_95": round(coco_eval.stats[0], 5),
+            "mAP_50": round(coco_eval.stats[1], 5),
+            "mAR_50_95": round(coco_eval.stats[8], 5),
+            "arguments": arguments,
+        }
+        json.dump(x, f)
+        f.write(",\n")
 
     # Lấy mAP trực tiếp từ coco_eval.stats (chỉ số mAP tại ngưỡng IoU trung bình)
     mAP_50 = coco_eval.stats[1]  # mAP@[IoU=0.5]

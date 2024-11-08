@@ -103,7 +103,7 @@ def get_models_predictions(model_weights_list, test_path, single_image=False):
     return predictions
 
 
-def run(model_weights_list, test_path, p, common_p, plot=True):
+def run(model_weights_list, test_path, p, iou_thr=0.5, sbthr=0.00001, plot=True):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     if device == "cuda:0":
         print("......................Using GPU.........................")
@@ -122,13 +122,13 @@ def run(model_weights_list, test_path, p, common_p, plot=True):
         test_path,
         predictions,
         single_image=False,
-        iou_thr=0.5,
-        skip_box_thr=0.00001,
+        iou_thr=iou_thr,
+        skip_box_thr=sbthr,
     )
 
     # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
     """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
-    results = minority_optimizer_func(results, p=p, common_p=common_p)
+    results = minority_optimizer_func(results, p=p)
     # print("not applying minority optimizer")
 
     # visualize
@@ -140,7 +140,9 @@ def run(model_weights_list, test_path, p, common_p, plot=True):
     return results
 
 
-def run_on_single_image(model_weights_list, image_path, p, common_p, plot=True):
+def run_on_single_image(
+    model_weights_list, image_path, p, iou_thr=0.5, sbthr=0.00001, plot=True
+):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     if device == "cuda:0":
         print("......................Using GPU.........................")
@@ -157,13 +159,13 @@ def run_on_single_image(model_weights_list, image_path, p, common_p, plot=True):
         image_path,
         predictions,
         single_image=True,
-        iou_thr=0.5,
-        skip_box_thr=0.00001,
+        iou_thr=iou_thr,
+        skip_box_thr=sbthr,
     )
 
     # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
     """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
-    results = minority_optimizer_func(results, p=p, common_p=common_p)
+    results = minority_optimizer_func(results, p=p)
 
     for image_name, preds in results.items():
         print(f"Image: {image_name}")
@@ -202,10 +204,18 @@ if __name__ == "__main__":
         help="Min confidence threshold for rare classes",
     )
     parser.add_argument(
-        "--common_p",
-        default=0.3,
+        "--iou_thr",
+        default=0.5,
         type=float,
-        help="Min confidence threshold for common classes",
+        required=False,
+        help="iou threshold for WBF",
+    )
+    parser.add_argument(
+        "--sbthr",
+        default=0.00001,
+        required=False,
+        type=float,
+        help="skip box threshold for WBF",
     )
     parser.add_argument(
         "--single_image",
@@ -227,6 +237,8 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    iou_thr = args.iou_thr
+    sbthr = args.sbthr
 
     # CHECK INPUTS
     if not os.path.exists(args.test_path):
@@ -242,7 +254,12 @@ if __name__ == "__main__":
     # RUN TEST
     if not args.single_image:
         final_results = run(
-            model_weights_list, args.test_path, args.p, args.common_p, args.plot
+            model_weights_list,
+            args.test_path,
+            args.p,
+            iou_thr,
+            sbthr,
+            args.plot,
         )
 
     # RUN TEST ON SINGLE IMAGE
@@ -251,7 +268,12 @@ if __name__ == "__main__":
             args.test_path, os.listdir(args.test_path)[args.image_index]
         )
         final_results = run_on_single_image(
-            model_weights_list, sample_image, args.p, args.common_p, args.plot
+            model_weights_list,
+            sample_image,
+            args.p,
+            iou_thr,
+            sbthr,
+            args.plot,
         )
 
 

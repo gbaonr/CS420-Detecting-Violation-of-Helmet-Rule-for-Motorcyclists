@@ -1,0 +1,17 @@
+{
+    "note": "apply MO score for all classes",
+    "model_weights_list": [
+        "weights/v10s/v10s_best5.pt",
+        "weights/v11s/v11s_best5.pt",
+        "weights/v10m/v10m_best5.pt"
+    ],
+    "mAP_50_95": 0.75643,
+    "mAP_50": 0.90585,
+    "mAR_50_95": 0.83523,
+    "arguments": {
+        "iou_thr": 0.7,
+        "skip_box_thr": 0.0001,
+        "p": 0.0001,
+        "test_path": "data/small_val/"
+    }
+},
