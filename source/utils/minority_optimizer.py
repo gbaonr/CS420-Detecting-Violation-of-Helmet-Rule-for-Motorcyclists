@@ -78,12 +78,15 @@ def minority_optimizer_func(results, p=0.001, common_p=0.3):
             parts = box.strip().split(",")
             label = int(float(parts[6]))
             score = float(parts[7])
-            if label in rare_classes:
-                if score > minority_score:
-                    new_results[image_name].append(box)
-            else:
-                if score > common_p:
-                    new_results[image_name].append(box)
+            # if label in rare_classes:
+            #     if score > minority_score:
+            #         new_results[image_name].append(box)
+            # else:
+            #     if score > common_p:
+            #         new_results[image_name].append(box)
+
+            if score > minority_score:
+                new_results[image_name].append(box)
 
     return new_results
 
