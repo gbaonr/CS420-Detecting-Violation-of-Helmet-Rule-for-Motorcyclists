@@ -307,7 +307,7 @@ def process_video(dataset, vid):
     return result
 
 
-def Virtural_Expander(data: list):
+def Virtual_Expander(data: list):
     dataset = {}
     for line in data:
         vid, fid, left, top, width, height, cls, conf = line
