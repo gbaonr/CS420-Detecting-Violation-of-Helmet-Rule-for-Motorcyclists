@@ -2,6 +2,7 @@ import numpy as np
 import uuid
 import tqdm
 
+
 def overlap_ratio(boxA, boxB):
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
@@ -14,6 +15,7 @@ def overlap_ratio(boxA, boxB):
         return 0
     return max(interArea / float(boxBArea), interArea / float(boxAArea))
 
+
 class Filter:
     def __init__(self, motorlist, humanlist) -> None:
         self.motorlist = motorlist
@@ -21,44 +23,24 @@ class Filter:
         self.allclass = []
 
     def remove_overlap(self):
-        # Remove overlapping motors
         list_to_remove = []
         for motor in self.motorlist:
             for motor2 in self.motorlist:
-                if (
-                    motor.motor_id != motor2.motor_id
-                    and overlap_ratio(motor.get_box_info(), motor2.get_box_info()) > 0.9
-                ):
-                    id_to_remove = (
-                        motor.motor_id if motor.conf < motor2.conf else motor2.motor_id
-                    )
+                if motor.motor_id != motor2.motor_id and overlap_ratio(motor.get_box_info(), motor2.get_box_info()) > 0.9:
+                    id_to_remove = motor.motor_id if motor.conf < motor2.conf else motor2.motor_id
                     list_to_remove.append(id_to_remove)
-        self.motorlist = [
-            motor for motor in self.motorlist if motor.motor_id not in list_to_remove
-        ]
+        self.motorlist = [motor for motor in self.motorlist if motor.motor_id not in list_to_remove]
 
-        # Remove overlapping humans
         remove_list = {}
         for human in self.humanlist:
             for human2 in self.humanlist:
-                if (
-                    human.human_id != human2.human_id
-                    and human.class_id == human2.class_id
-                    and overlap_ratio(human.get_box_info(), human2.get_box_info()) > 0.9
-                ):
+                if human.human_id != human2.human_id and human.class_id == human2.class_id and overlap_ratio(human.get_box_info(), human2.get_box_info()) > 0.9:
                     if human.class_id not in remove_list:
                         remove_list[human.class_id] = []
-
-                    id_to_remove = (
-                        human.human_id if human.conf < human2.conf else human2.human_id
-                    )
+                    id_to_remove = human.human_id if human.conf < human2.conf else human2.human_id
                     remove_list[human.class_id].append(id_to_remove)
         for key in remove_list:
-            self.humanlist = [
-                human
-                for human in self.humanlist
-                if human.human_id not in remove_list[key]
-            ]
+            self.humanlist = [human for human in self.humanlist if human.human_id not in remove_list[key]]
 
     def create_virtual(self):
         self.remove_overlap()
@@ -68,56 +50,19 @@ class Filter:
             left, top, right, bottom, class_id, conf, cls_conf = motor.get_box_info()
             for cl in class_list:
                 if float(cl) != class_id:
-                    self.allclass.append(
-                        Human(
-                            bbox=[
-                                left,
-                                top,
-                                right - left,
-                                bottom - top,
-                                float(cl),
-                                0.00001,
-                            ]
-                        )
-                    )
+                    self.allclass.append(Human([left, top, right - left, bottom - top, float(cl), 0.00001]))
         for human in self.humanlist:
             self.allclass.append(human)
             left, top, right, bottom, class_id, conf, cls_conf = human.get_box_info()
             for cl in class_list:
                 if float(cl) != class_id:
-                    if float(cl) == 1.0:
-                        self.allclass.append(
-                            Human(
-                                bbox=[
-                                    left,
-                                    top,
-                                    right - left,
-                                    bottom - top,
-                                    float(cl),
-                                    0.00001,
-                                ]
-                            )
-                        )
-                    else:
-                        self.allclass.append(
-                            Human(
-                                bbox=[
-                                    left,
-                                    top,
-                                    right - left,
-                                    bottom - top,
-                                    float(cl),
-                                    0.001,
-                                ]
-                            )
-                        )
+                    self.allclass.append(Human([left, top, right - left, bottom - top, float(cl), 0.001]))
         return self.allclass
+
 
 class Motor:
     def __init__(self, bbox=None, cls_conf=-1, combine_expand=0.05) -> None:
-        self.left, self.top, self.width, self.height, self.class_id, self.conf = (
-            np.array(bbox).astype(float)
-        )
+        self.left, self.top, self.width, self.height, self.class_id, self.conf = np.array(bbox).astype(float)
         self.cls_conf = cls_conf
         self.motor_id = str(uuid.uuid4().int)
         self.human_id = None
@@ -131,15 +76,8 @@ class Motor:
         self.type = "motor"
 
     def get_box_info(self):
-        return [
-            self.left,
-            self.top,
-            self.right,
-            self.bottom,
-            self.class_id,
-            self.conf,
-            self.cls_conf,
-        ]
+        return [self.left, self.top, self.right, self.bottom, self.class_id, self.conf, self.cls_conf]
+
 
 class Human(Motor):
     def __init__(self, bbox=None, cls_conf=-1, overlap_thres=0.3) -> None:
@@ -159,20 +97,10 @@ class Human(Motor):
                 self.motor_id = motor.motor_id
                 motor.humans.append(self)
                 motor.combined_box = [
-                    max(
-                        0, min(self.left, motor.combined_box[0]) - self.combine_expand_w
-                    ),
-                    max(
-                        0, min(self.top, motor.combined_box[1]) - self.combine_expand_h
-                    ),
-                    min(
-                        1920,
-                        max(self.right, motor.combined_box[2]) + self.combine_expand_w,
-                    ),
-                    min(
-                        1080,
-                        max(self.bottom, motor.combined_box[3]) + self.combine_expand_h,
-                    ),
+                    max(0, min(self.left, motor.combined_box[0]) - self.combine_expand_w),
+                    max(0, min(self.top, motor.combined_box[1]) - self.combine_expand_h),
+                    min(1920, max(self.right, motor.combined_box[2]) + self.combine_expand_w),
+                    min(1080, max(self.bottom, motor.combined_box[3]) + self.combine_expand_h),
                 ]
                 break
 
@@ -183,7 +111,7 @@ class Human(Motor):
             if overlap > self.overlap_thres:
                 keep_heads.append(head)
 
-        if len(keep_heads):
+        if keep_heads:
             min_dis = self.right - self.left
             nearest_head_index = -1
             for i, head in enumerate(keep_heads):
@@ -198,6 +126,7 @@ class Human(Motor):
             self.cls_conf = keep_heads[nearest_head_index].cls_conf
             self.heads.append(keep_heads[nearest_head_index])
 
+
 class Head(Motor):
     def __init__(self, bbox=None, cls_conf=-1, is_helmet=False, overlap_thres=0.6) -> None:
         super().__init__(bbox=bbox, cls_conf=cls_conf)
@@ -211,9 +140,7 @@ class Head(Motor):
     def attach_motor_id(self, motors: list, head_motor_overlap_thresh):
         avg_overlaps = []
         for motor in motors:
-            head_motor_overlap = overlap_ratio(
-                self.get_box_info(), motor.get_box_info()
-            )
+            head_motor_overlap = overlap_ratio(self.get_box_info(), motor.get_box_info())
             if head_motor_overlap > head_motor_overlap_thresh:
                 avg_overlaps.append(0)
                 continue
@@ -221,10 +148,7 @@ class Head(Motor):
             if overlap > self.overlap_thres:
                 for human in motor.humans:
                     overlap += overlap_ratio(self.get_box_info(), human.get_box_info())
-                if len(motor.humans):
-                    avg_overlaps.append(overlap / (len(motor.humans)))
-                else:
-                    avg_overlaps.append(0)
+                avg_overlaps.append(overlap / len(motor.humans) if motor.humans else 0)
             else:
                 avg_overlaps.append(0)
         if sum(avg_overlaps) > 0:
@@ -232,76 +156,27 @@ class Head(Motor):
             self.motor_id = motors[max_index].motor_id
             motors[max_index].heads.append(self)
 
+
 def process_objects(img_name, human_list, motor_list):
     filter = Filter(motor_list, human_list)
-    result = ""
     all_class = filter.create_virtual()
+    result = []
     for obj in all_class:
         left, top, right, bottom, class_id, conf, _ = obj.get_box_info()
-        result += (
-            ",".join(
-                map(
-                    str,
-                    [img_name, left, top, right - left, bottom - top, class_id, conf],
-                )
-            )
-            + "\n"
-        )
-    return result
-
-
-def process_video(dataset):
-    results = {}
-    for img_name, data in dataset.items():
-        human_list = data.get("human", [])
-        motor_list = data.get("motor", [])
-        result = process_objects(img_name, human_list, motor_list)
-        # Store result in the output format
-        results[img_name] = result
-    return results
+        result.append([left, top, right, bottom, obj.right - obj.left, obj.bottom - obj.top, class_id, conf])
+    return {img_name: result}
 
 
 def Virtual_Expander(data: dict):
-    dataset = {}
-    
-    # Process input data dictionary to create dataset
-    for img_name, objs in data.items():
+    results = {}
+    for img_name, objects in tqdm.tqdm(data.items()):
         human_list = []
         motor_list = []
-        
-        for obj in objs:
-            x1, y1, x2, y2, img_width, img_height, label, score = obj
-            
-            if int(label) != 1:  # Assuming "motor" objects have label 1
-                human_list.append(
-                    Human(
-                        bbox=[
-                            float(x1),
-                            float(y1),
-                            float(x2 - x1),
-                            float(y2 - y1),
-                            float(label),
-                            float(score),
-                        ]
-                    )
-                )
-            else:
-                motor_list.append(
-                    Motor(
-                        bbox=[
-                            float(x1),
-                            float(y1),
-                            float(x2 - x1),
-                            float(y2 - y1),
-                            float(label),
-                            float(score),
-                        ]
-                    )
-                )
-        
-        # Assign the human and motor lists to the img_name
-        dataset[img_name] = {"human": human_list, "motor": motor_list}
-    
-    # Process the dataset and generate results in the required format
-    results = process_video(dataset)
+        for obj in objects:
+            if obj[6] == 1.0:  # Human label
+                human_list.append(Human(obj))
+            elif obj[6] == 2.0:  # Motor label
+                motor_list.append(Motor(obj))
+        result = process_objects(img_name, human_list, motor_list)
+        results.update(result)
     return results
