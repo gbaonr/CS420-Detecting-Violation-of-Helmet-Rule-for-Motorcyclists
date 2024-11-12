@@ -47,8 +47,6 @@ def fuse(
     - Params: (model_names_list, test_path, predicitons of all models, iou_thres, skip_box_thr)
     """
     results = []
-    results_dict = {}
-    import warnings
 
     # Tắt toàn bộ các cảnh báo
     warnings.filterwarnings("ignore")
@@ -61,6 +59,10 @@ def fuse(
     # Iterate through all images
     if not single_image:
         for image_name in os.listdir(test_path):
+
+            video_id, frame_id = image_name.split(".mp4_")
+            frame_id = frame_id.split(".jpg")[0]
+
             img_boxes = []
             img_labels = []
             img_scores = []
@@ -106,20 +108,32 @@ def fuse(
 
                 # save results with de-normalized bounding box
                 for i in range(len(boxes)):
-                    if image_name not in results_dict:
-                        results_dict[image_name] = []
-
-                    results_dict[image_name].append(
-                        f"{boxes[i][0]*i_w},{boxes[i][1]*i_h},{boxes[i][2]*i_w},{boxes[i][3]*i_h},{i_w},{i_h},{labels[i]},{scores[i]}\n"
+                    results.append(
+                        [
+                            int(video_id),
+                            int(frame_id),
+                            boxes[i][0] * i_w,
+                            boxes[i][1] * i_h,
+                            boxes[i][2] * i_w,
+                            boxes[i][3] * i_h,
+                            i_w,
+                            i_h,
+                            labels[i],
+                            scores[i],
+                        ]
                     )
-
-    # fuse on single image
     if single_image:
         image_name = os.path.basename(test_path)
+
+        video_id, frame_id = image_name.split(".mp4_")
+        frame_id = frame_id.split(".jpg")[0]
+
         img_boxes = []
         img_labels = []
         img_scores = []
+
         i_h, i_w = cv2.imread(test_path).shape[:2]  # store the image size
+
         for model in models_names_list:
             model_prediction = predictions[model][image_name]
             for line in model_prediction:
@@ -140,7 +154,6 @@ def fuse(
                 except Exception as e:
                     print(f"Error processing line {line} in image: {e}")
                     continue
-        # fuse boxes
         if img_boxes:
             # weighted_boxes_fusion expects lists of lists
             boxes, scores, labels = weighted_boxes_fusion(
@@ -151,14 +164,21 @@ def fuse(
                 skip_box_thr=skip_box_thr,
             )
             # save results with de-normalized bounding box
+            # save results with de-normalized bounding box
             for i in range(len(boxes)):
-                if image_name not in results_dict:
-                    results_dict[image_name] = []
-
-                results_dict[image_name].append(
-                    f"{boxes[i][0]*i_w},{boxes[i][1]*i_h},{boxes[i][2]*i_w},{boxes[i][3]*i_h},{i_w},{i_h},{labels [i]},{scores[i]}\n"
+                results.append(
+                    [
+                        int(video_id),
+                        int(frame_id),
+                        boxes[i][0] * i_w,
+                        boxes[i][1] * i_h,
+                        boxes[i][2] * i_w,
+                        boxes[i][3] * i_h,
+                        i_w,
+                        i_h,
+                        labels[i],
+                        scores[i],
+                    ]
                 )
 
-    # results_dict = {image_name : [ [xyxy, i_w, i_h, label, score], [..] ]} with de-normalized xywh
-
-    return results_dict
+    return results

@@ -127,12 +127,12 @@ def run(model_weights_list, test_path, p, iou_thr=0.5, sbthr=0.00001, plot=True)
         skip_box_thr=sbthr,
     )
 
-    results = Virtual_Expander(results)
-    
     # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
     """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
     results = minority_optimizer_func(results, p=p)
     # print("not applying minority optimizer")
+
+    results = Virtual_Expander(results)
 
     # visualize
     if plot:
@@ -166,11 +166,11 @@ def run_on_single_image(
         skip_box_thr=sbthr,
     )
 
-    results = Virtual_Expander(results)
-    
     # apply minority optimizer (p: conf thres for rare classes, common_p: conf thres for common classes)
     """this step is to filter out the predictions of common classes with low confidence and preserve the predictions of rare classes with higher confidence than minority_score"""
     results = minority_optimizer_func(results, p=p)
+
+    results = Virtual_Expander(results)
 
     for image_name, preds in results.items():
         print(f"Image: {image_name}")
