@@ -5,11 +5,10 @@ from tqdm import tqdm
 
 def count_samples_per_class(data):
     class_counts = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-    for image_names, lines in data.items():
-        for line in lines:
-            parts = line.strip().split(",")
-            class_id = int(float(parts[6]))
-            class_counts[class_id] += 1
+
+    for line in data:
+        class_id = int(line[8])
+        class_counts[class_id] += 1
 
     return class_counts, max(class_counts)
 
@@ -45,17 +44,15 @@ def minority(p, results, n):
 
     # find minimum threshold
     for each_class_index in rare_classes:
-        for _, samples in results.items():
-            for sample in samples:
-                parts = sample.strip().split(",")
-                class_id = int(float(parts[6]))
-                score = float(parts[7])
-                # print(f"\tclass_id : {class_id}, score : {score}")
-                if class_id != each_class_index:
-                    continue
-                if score < min_thresh:
-                    # print("\t\tupdating min_thresh, new threshold : ", score)
-                    min_thresh = score
+        for sample in results:
+            class_id = sample[8]
+            score = sample[9]
+
+            if class_id != each_class_index:
+                continue
+            if score < min_thresh:
+                # print("\t\tupdating min_thresh, new threshold : ", score)
+                min_thresh = score
 
     print(f"\n\tRare classes : {rare_classes}")
     print(f"\nMin_thresh = : {min_thresh}")
@@ -63,30 +60,16 @@ def minority(p, results, n):
     return max(min_thresh, p), rare_classes
 
 
-def minority_optimizer_func(results, p=0.001, common_p=0.3):
+def minority_optimizer_func(results, p=0.001):
     number_of_classes = 9
     minority_score, rare_classes = minority(p, results, number_of_classes)
 
     print(f"Minority Score : {minority_score}\n\n")
 
-    new_results = {}
-    for image_name, boxes in results.items():
-        # print(f"{image_name} : {boxes}")
-        if image_name not in new_results:
-            new_results[image_name] = []
-        for box in boxes:
-            parts = box.strip().split(",")
-            label = int(float(parts[6]))
-            score = float(parts[7])
-            # if label in rare_classes:
-            #     if score > minority_score:
-            #         new_results[image_name].append(box)
-            # else:
-            #     if score > common_p:
-            #         new_results[image_name].append(box)
-
-            if score > minority_score:
-                new_results[image_name].append(box)
+    new_results = []
+    for result in results:
+        if result[-1] >= minority_score:
+            new_results.append(result)
 
     return new_results
 
