@@ -217,7 +217,7 @@ def process_video(dataset, vid):
         result += process_objects(vid, fid, dataset[vid][fid]['human'], dataset[vid][fid]['motor'])
     return result
 
-def Virtural_Expander(data: list):
+def Virtual_Expander(data: list):
     dataset = {}
     for line in data:
         vid, fid, left, top, width, height, cls, conf = line
