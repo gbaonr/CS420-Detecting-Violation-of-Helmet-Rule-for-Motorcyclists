@@ -1,9 +1,9 @@
-# this file is use for validation purposes
+# CREATE MODELS AND PREDICT
 """
-Run this file by : 
-python val.py --model_weights weights/best.pt --test_path ../data/val/images
-"""
+Run this file by :
+python test.py --model_weights path1_to_your_model1.pt path2_to_your_model2.pt --test_path data/small_val/images
 
+"""
 import os
 import time
 import json
@@ -104,23 +104,23 @@ if __name__ == "__main__":
     label_path = test_path.replace("images", "labels")
 
     # Xử lý dự đoán (predictions)
-    for image_name, result in results.items():
+    for result in results:
 
+        vid, fid = result[0], result[1]
+        image_name = str(vid) + ".mp4_" + str(fid)+ ".jpg"
         image_id = image_id_map.setdefault(image_name, len(image_id_map) + 1)
 
-        for pred_box in result:
-            parts = pred_box.strip().split(",")
-            x1, y1, x2, y2 = map(float, [parts[0], parts[1], parts[2], parts[3]])
-            label, conf = int(float(parts[6])), float(parts[7])
-            width, height = x2 - x1, y2 - y1
-            predictions.append(
-                {
-                    "image_id": image_id,
-                    "category_id": label,
-                    "bbox": [x1, y1, width, height],
-                    "score": conf,
-                }
-            )
+        x1, y1, x2, y2 = map(float, [result[2], result[3], result[4], result[5]])
+        label, conf = int(float(result[-2])), float(result[-1])
+        width, height = x2 - x1, y2 - y1
+        predictions.append(
+            {
+                "image_id": image_id,
+                "category_id": label,
+                "bbox": [x1, y1, width, height],
+                "score": conf,
+            }
+        )
 
     # Xử lý ground truth
     image_files = [f for f in os.listdir(label_path) if f.endswith(".txt")]
@@ -217,3 +217,8 @@ if __name__ == "__main__":
     # Lấy mAP trực tiếp từ coco_eval.stats (chỉ số mAP tại ngưỡng IoU trung bình)
     mAP_50 = coco_eval.stats[1]  # mAP@[IoU=0.5]
     print(f"mAP at IoU=0.5: {mAP_50}")
+    
+"""
+python source/test.py --test_path data/small_val/images --single_image True --image_index 4 --common_p 0.25 --p 0.0005
+
+"""
