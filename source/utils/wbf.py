@@ -181,4 +181,5 @@ def fuse(
                     ]
                 )
 
+    # results[i] = [video_id, frame_id, x1, y1, x2, y2, img_w, img_h, label, score]
     return results
