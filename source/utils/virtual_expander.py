@@ -1,4 +1,3 @@
-
 import numpy as np
 import uuid
 import tqdm
@@ -59,16 +58,16 @@ class Filter:
             left, top, right, bottom,  class_id, conf, cls_conf = motor.get_box_info()
             for cl in class_list:
                 if float(cl) != class_id:
-                    self.allclass.append(Human(bbox=[left, top, right-left, bottom-top, float(cl), 0.00001]))
+                    self.allclass.append(Human(bbox=[left, top, right, bottom, right-left, bottom-top, float(cl), 0.00001]))
         for human in self.humanlist:
             self.allclass.append(human)
             left, top, right, bottom,  class_id, conf, cls_conf = human.get_box_info()
             for cl in class_list:
                 if float(cl) != class_id:
                     if float(cl) == 1.0:
-                        self.allclass.append(Human(bbox=[left, top, right-left, bottom-top, float(cl), 0.00001]))
+                        self.allclass.append(Human(bbox=[left, top, right,bottom, right-left, bottom-top, float(cl), 0.00001]))
                     else:
-                        self.allclass.append(Human(bbox=[left, top, right-left, bottom-top, float(cl), 0.001]))
+                        self.allclass.append(Human(bbox=[left, top, right, bottom, right-left, bottom-top, float(cl), 0.001]))
         return self.allclass
 
 class Motor:
@@ -204,7 +203,7 @@ def process_objects(vid, fid, human_list, motor_list):
     all_class = filter.create_virtual()
     for obj in all_class:
         left, top, right, bottom, class_id, conf, _ = obj.get_box_info()
-        result += ','.join(map(str, [vid, fid, left, top, right - left, bottom - top, class_id, conf])) + '\n'
+        result += ','.join(map(str, [vid, fid, left, top, right, bottom , right - left, bottom - top, class_id, conf])) + '\n'
     return result
 
 def process_video(dataset, vid):
@@ -220,7 +219,7 @@ def process_video(dataset, vid):
 def Virtual_Expander(data: list):
     dataset = {}
     for line in data:
-        vid, fid, left, top, width, height, cls, conf = line
+        vid, fid, left, top, right, bottom, width, height, cls, conf = line
         if int(float(cls)) != 1:
             
             if vid not in dataset.keys():
@@ -229,7 +228,7 @@ def Virtual_Expander(data: list):
                 dataset[vid][fid] = {}
             if 'human' not in dataset[vid][fid].keys():
                 dataset[vid][fid]['human'] = []
-            dataset[vid][fid]['human'].append(Human(bbox=[float(left), float(top), float(width), float(height),float(cls), float(conf)]))
+            dataset[vid][fid]['human'].append(Human(bbox=[float(left), float(top), float(right), float(bottom), float(width), float(height),float(cls), float(conf)]))
        
         else:
             if vid not in dataset.keys():
@@ -238,11 +237,11 @@ def Virtual_Expander(data: list):
                 dataset[vid][fid] = {}
             if 'motor' not in dataset[vid][fid].keys():
                 dataset[vid][fid]['motor'] = []
-            dataset[vid][fid]['motor'].append(Motor(bbox=[float(left), float(top), float(width), float(height),float(cls), float(conf)]))
+            dataset[vid][fid]['motor'].append(Motor(bbox=[float(left), float(top),float(right),float(bottom), float(width), float(height),float(cls), float(conf)]))
        
             # if 'human' not in dataset[vid][fid].keys():
             #     dataset[vid][fid]['human'] = []
-            # dataset[vid][fid]['human'].append(Human(bbox=[float(left), float(top), float(width), float(height),float(cls), float(conf)]))
+            # dataset[vid][fid]['human'].append(Human(bbox=[float(left), float(top),float(right),float(bottom) float(width), float(height),float(cls), float(conf)]))
     # Create ouput
     results = ''
     for vid in tqdm(dataset.keys()):
