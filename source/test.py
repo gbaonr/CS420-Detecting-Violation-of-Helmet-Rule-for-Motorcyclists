@@ -132,7 +132,7 @@ def run(model_weights_list, test_path, p, iou_thr=0.5, sbthr=0.00001, plot=True)
     results = minority_optimizer_func(results, p=p)
     # print("not applying minority optimizer")
 
-    results = Virtual_Expander(results)
+    # results = Virtual_Expander(results)
 
     # visualize
     if plot:
