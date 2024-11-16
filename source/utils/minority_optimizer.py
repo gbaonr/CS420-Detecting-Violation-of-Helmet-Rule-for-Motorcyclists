@@ -18,7 +18,7 @@ def find_max(results):
     return classes_count, n_max_class
 
 
-def minority(p, results, n):
+def minority(p, results, n=9):
     """
     - Find the minority class and the threshold for the minority class
     @param p: min threshold
@@ -28,7 +28,7 @@ def minority(p, results, n):
     classes_count, n_max_class = find_max(results)
     mean_samples = float(sum(classes_count) / n)  # mean samples per class
     alpha = float(
-        mean_samples / n_max_class
+        n_max_class / mean_samples
     )  # mean samples per class / max samples in a class
 
     print(f"\n\tclasses count : {classes_count}")
