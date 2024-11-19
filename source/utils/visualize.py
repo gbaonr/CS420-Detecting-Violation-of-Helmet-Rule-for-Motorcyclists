@@ -2,34 +2,6 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 
-
-def print_():
-    print("hello world from visualize")
-
-
-COLORS = [
-    (255, 179, 0),
-    (128, 62, 117),
-    (255, 104, 0),
-    (166, 189, 215),
-    (193, 0, 32),
-    (206, 162, 98),
-    (129, 112, 102),
-    (0, 125, 52),
-    (246, 118, 142),
-    (0, 83, 138),
-    (255, 122, 92),
-    (83, 55, 122),
-    (255, 142, 0),
-    (179, 40, 81),
-    (244, 200, 0),
-    (127, 24, 13),
-    (147, 170, 0),
-    (89, 51, 21),
-    (241, 58, 19),
-    (35, 44, 22),
-]
-
 class_names = [
     "motorbike",
     "DHelmet",
@@ -43,16 +15,27 @@ class_names = [
 ]
 
 class_colors = [
-    (0, 255, 255),  # Xanh lơ
-    (0, 255, 0),  # Xanh lá
-    (0, 0, 255),  # Xanh dương
-    (255, 255, 0),  # Vàng
-    (255, 0, 255),  # Hồng
-    (255, 0, 0),  # Đỏ
-    (128, 0, 128),  # Tím
-    (0, 128, 128),  # Xanh biển
-    (128, 128, 0),  # Xanh rêu
+    (255, 0, 0),
+    (0, 255, 0),
+    (0, 0, 255),
+    (255, 255, 0),
+    (0, 255, 255),
+    (255, 0, 255),
+    (128, 0, 0),
+    (0, 128, 0),
+    (0, 0, 128),
 ]
+
+
+# Hàm tính toán tỷ lệ font phù hợp
+def get_optimal_font_scale(text, width):
+    for scale in range(60, 0, -1):
+        textSize = cv2.getTextSize(
+            text, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=scale / 10, thickness=1
+        )[0]
+        if textSize[0] <= width:
+            return scale / 10
+    return 1
 
 
 def plot_bbox(
@@ -69,7 +52,6 @@ def plot_bbox(
     - color: Color to draw the boxes.
     - names: List of class names corresponding to class IDs.
     """
-
     for i, box in enumerate(boxes):
         x1, y1, x2, y2 = map(int, box)
         label = labels[i]
@@ -83,39 +65,28 @@ def plot_bbox(
 
         # Create label text (class name and score)
         label_text = f"{names[label]}: {score:.2f}"
+        max_width = x2 - x1
+        font_scale = get_optimal_font_scale(label_text, max_width)
+        thickness = 2
 
-        # Get text size
+        # Draw a rectangle behind text
         (text_width, text_height), baseline = cv2.getTextSize(
-            label_text, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2
+            label_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness
         )
-
-        # Draw a rectangle behind text for background blur
-        rect_start = (x1, y1 - text_height - 10)
-        rect_end = (x1 + text_width, y1)
-        sub_img = image[rect_start[1] : rect_end[1], rect_start[0] : rect_end[0]]
-
-        # Apply Gaussian blur for a blurred rectangle effect
-        if sub_img.shape[0] > 0 and sub_img.shape[1] > 0:
-            blurred_rect = cv2.GaussianBlur(sub_img, (5, 5), 0)
-            image[rect_start[1] : rect_end[1], rect_start[0] : rect_end[0]] = (
-                blurred_rect
-            )
-
-        # Draw a semi-transparent rectangle as text background
-        overlay = image.copy()
-        cv2.rectangle(overlay, rect_start, rect_end, (0, 0, 0), -1)
-        alpha = 0.6
-        cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+        top_left = (x1, y1 - text_height - 7)
+        bottom_right = (x1 + text_width + 5, y1)
+        cv2.rectangle(image, top_left, bottom_right, color, cv2.FILLED)
 
         # Put the label text on the image
         cv2.putText(
             image,
             label_text,
-            (x1, y1 - 5),
+            (x1 + 5, y1 - 5),
             cv2.FONT_HERSHEY_SIMPLEX,
-            1.0,
-            (255, 255, 255),
-            2,
+            fontScale=font_scale,
+            color=(0, 0, 0),
+            thickness=thickness,
+            lineType=cv2.LINE_AA,
         )
 
     return image
