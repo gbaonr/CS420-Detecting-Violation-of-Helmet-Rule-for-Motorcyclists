@@ -106,10 +106,6 @@ def get_models_predictions(model_weights_list, test_path, single_image=False):
 
 def run(model_weights_list, test_path, p, iou_thr=0.5, sbthr=0.00001, plot=True):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if device == "cuda:0":
-        print("......................Using GPU.........................")
-    else:
-        print("......................Using CPU.........................")
 
     predictions = get_models_predictions(
         model_weights_list, test_path, single_image=False
@@ -147,10 +143,6 @@ def run_on_single_image(
     model_weights_list, image_path, p, iou_thr=0.5, sbthr=0.00001, plot=True
 ):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    if device == "cuda:0":
-        print("......................Using GPU.........................")
-    else:
-        print("......................Using CPU.........................")
     predictions = get_models_predictions(
         model_weights_list, image_path, single_image=True
     )
@@ -183,6 +175,78 @@ def run_on_single_image(
     # visualize
     if plot:
         visualize(image_path, results[os.path.basename(image_path)])
+
+    return results
+
+
+def run_on_frame(models, frame, frame_name, iou_thr, skip_box_thr, p, truncate=False):
+    """
+    Run predictions on a single frame, used on app
+    @param models: list of models
+    @param frame: frame to run predictions on
+    @param iou_thr: iou threshold for WBF
+    @param skip_box_thr: skip box threshold for WBF
+    @param p: Min minority score
+    """
+
+    height, width = frame.shape[:2]
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    all_boxes, all_labels, all_scores = [], [], []
+
+    # Run predictions on all models
+    for model in models:
+        results = model.predict(
+            source=frame, save=False, stream=True, batch=8, conf=0.00001, device=device
+        )
+        boxes, labels, scores = [], [], []
+        for result in results:
+            for box in result.boxes:
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                score = box.conf[0].item()
+                label = int(box.cls[0].item())
+                # normalized xyxy
+                boxes.append([x1 / width, y1 / height, x2 / width, y2 / height])
+                labels.append(label)
+                scores.append(score)
+        all_boxes.append(boxes)
+        all_labels.append(labels)
+        all_scores.append(scores)
+
+    # Fuse results
+    results = fuse_frame(
+        all_boxes,
+        all_labels,
+        all_scores,
+        iou_thr,
+        skip_box_thr,
+        frame_name,
+        width,
+        height,
+    )
+
+    # results[i] = [video_id, frame_id, x1, y1, x2, y2, img_w, img_h, label, score]
+
+    # Apply minority optimizer
+    try:
+        results = minority_optimizer_func(results, p=p)
+    except Exception as e:
+        print("Error in minority optimizer: ", e)
+
+    # Apply virtual expander
+    try:
+        results = Virtual_Expander(results)
+    except Exception as e:
+        print("Error in virtual expander: ", e)
+
+    if truncate:
+        # return 3 list
+        boxes, labels, scores = [], [], []
+        for i, result in enumerate(results):
+            boxes.append(result[2:5])
+            labels.append(result[-2])
+            scores.append(result[-1])
+
+        return boxes, labels, scores
 
     return results
 

@@ -183,3 +183,38 @@ def fuse(
 
     # results[i] = [video_id, frame_id, x1, y1, x2, y2, img_w, img_h, label, score]
     return results
+
+
+def fuse_frame(
+    all_boxes, all_labels, all_scores, iou_thr, skip_box_thr, frame_name, i_w, i_h
+):
+    """
+    Fuse results from multiple models of a single frame, format output to match MO, VE
+    """
+    fused_boxes, fused_scores, fused_labels = weighted_boxes_fusion(
+        all_boxes, all_scores, all_labels, iou_thr=iou_thr, skip_box_thr=skip_box_thr
+    )
+
+    # format output: attach vid, fid, denormalize bbox
+    # frame_name = "vid_fid.jpg"
+    vid, fid = frame_name.split(".jpg")[0].split("_")
+    results = []
+
+    for i in range(len(fused_boxes)):
+        results.append(
+            [
+                int(vid),
+                int(fid),
+                fused_boxes[i][0],
+                fused_boxes[i][1],
+                fused_boxes[i][2],
+                fused_boxes[i][3],
+                i_w,
+                i_h,
+                fused_labels[i],
+                fused_scores[i],
+            ]
+        )
+    # results[i] = [video_id, frame_id, x1, y1, x2, y2, img_w, img_h, label, score]
+
+    return results
