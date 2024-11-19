@@ -242,7 +242,7 @@ def run_on_frame(models, frame, frame_name, iou_thr, skip_box_thr, p, truncate=T
         # return 3 list
         boxes, labels, scores = [], [], []
         for i, result in enumerate(results):
-            boxes.append(result[2:5])
+            boxes.append(result[2:6])
             labels.append(result[-2])
             scores.append(result[-1])
 
