@@ -173,7 +173,7 @@ def process_video(dataset, vid):
         result += process_objects(vid, fid, dataset[vid][fid]['human'], dataset[vid][fid]['motor'])
     return result
 def Virtual_Expander(data: list):
-    print("____Start Virtual_Expander____")
+    # print("____Start Virtual_Expander____")
     dataset = {}
     for line in data:
         vid, fid, left, top, right, bottom,_ , _, cls, conf = line
@@ -201,9 +201,9 @@ def Virtual_Expander(data: list):
        
     # Create ouput
     results = []
-    for vid in tqdm(dataset.keys()):
+    for vid in (dataset.keys()):
         results += process_video(dataset, vid)
 
-    print("____End Virtual_Expander____")
+    # print("____End Virtual_Expander____")
     #results[i] = [int(vid), int(fid), float(x0), float(y0),float(x1),float(y1),float(width),float(height),float(cls),float(conf)] 
     return results
