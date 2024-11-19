@@ -179,7 +179,7 @@ def run_on_single_image(
     return results
 
 
-def run_on_frame(models, frame, frame_name, iou_thr, skip_box_thr, p, truncate=False):
+def run_on_frame(models, frame, frame_name, iou_thr, skip_box_thr, p, truncate=True):
     """
     Run predictions on a single frame, used on app
     @param models: list of models
