@@ -15,11 +15,11 @@ class_names = [
 ]
 
 class_colors = [
-    (255, 0, 0),
-    (0, 255, 0),
-    (0, 0, 255),
+    (255, 90, 90),
+    (127, 245, 127),
+    (90, 90, 255),
     (255, 255, 0),
-    (0, 255, 255),
+    (120, 255, 255),
     (255, 0, 255),
     (128, 0, 0),
     (0, 128, 0),
@@ -28,14 +28,18 @@ class_colors = [
 
 
 # Hàm tính toán tỷ lệ font phù hợp
-def get_optimal_font_scale(text, width):
-    for scale in range(60, 0, -1):
+def get_optimal_font_scale(text, width, thickness=1):
+    for scale in range(20, 0, -1):
         textSize = cv2.getTextSize(
-            text, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=scale / 10, thickness=1
+            text,
+            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+            fontScale=float(scale / 10),
+            thickness=thickness,
         )[0]
         if textSize[0] <= width:
             return scale / 10
-    return 1
+
+    return 0.1
 
 
 def plot_bbox(
@@ -54,26 +58,30 @@ def plot_bbox(
     """
     for i, box in enumerate(boxes):
         x1, y1, x2, y2 = map(int, box)
+        y1 += 3
         label = labels[i]
         score = scores[i]
 
         # Choose color for box
         color = class_colors[int(label)]
 
-        # Draw bounding box
-        cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
-
         # Create label text (class name and score)
-        label_text = f"{names[label]}: {score:.2f}"
-        max_width = x2 - x1
-        font_scale = get_optimal_font_scale(label_text, max_width)
-        thickness = 2
+        label_text = f"{names[label]}:{score*100:.0f}"
+        max_width = 65 if x2 - x1 < 50 else x2 - x1
+        max_width = min(max_width, 180)
+        box_thickness = 1 if x2 - x1 < 100 else 2
+        text_thickness = 1 if x2 - x1 < 80 else 2
+
+        font_scale = get_optimal_font_scale(label_text, max_width, text_thickness)
+
+        # Draw bounding box
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=box_thickness)
 
         # Draw a rectangle behind text
         (text_width, text_height), baseline = cv2.getTextSize(
-            label_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness
+            label_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_thickness
         )
-        top_left = (x1, y1 - text_height - 7)
+        top_left = (x1, y1 - text_height - 5)
         bottom_right = (x1 + text_width + 5, y1)
         cv2.rectangle(image, top_left, bottom_right, color, cv2.FILLED)
 
@@ -81,11 +89,11 @@ def plot_bbox(
         cv2.putText(
             image,
             label_text,
-            (x1 + 5, y1 - 5),
+            (x1 + 3, y1 - 3),
             cv2.FONT_HERSHEY_SIMPLEX,
             fontScale=font_scale,
             color=(0, 0, 0),
-            thickness=thickness,
+            thickness=text_thickness,
             lineType=cv2.LINE_AA,
         )
 
