@@ -232,11 +232,11 @@ def run_on_frame(models, frame, frame_name, iou_thr, skip_box_thr, p, truncate=T
     except Exception as e:
         print("Error in minority optimizer: ", e)
 
-    # Apply virtual expander
-    try:
-        results = Virtual_Expander(results)
-    except Exception as e:
-        print("Error in virtual expander: ", e)
+    # # Apply virtual expander
+    # try:
+    #     results = Virtual_Expander(results)
+    # except Exception as e:
+    #     print("Error in virtual expander: ", e)
 
     if truncate:
         # return 3 list
