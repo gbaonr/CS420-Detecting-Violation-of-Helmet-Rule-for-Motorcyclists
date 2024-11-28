@@ -29,7 +29,7 @@ def minority(p, results, n=9):
     mean_samples = float(sum(classes_count) / n)  # mean samples per class
     alpha = float(
         n_max_class / mean_samples
-    )  # mean samples per class / max samples in a class
+    ) if mean_samples != 0 else 0
 
     # print(f"\n\tclasses count : {classes_count}")
 
